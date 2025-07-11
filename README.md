@@ -79,30 +79,48 @@ The application will be available at `http://localhost:3000`
 
 ## Usage
 
-### Creating Portfolios
+### Creating a Portfolio
 
-1. Click the "New Portfolio" button
-2. Enter a portfolio name and initial value
-3. Click "Create Portfolio"
+1. Click the **"New Portfolio"** button at the top of the dashboard.
+2. Enter a unique portfolio name and its initial value in the form.
+3. Click **"Create Portfolio"** to add it to your list. The new portfolio will appear instantly.
 
-### Adding Trades
+### Adding a Trade
 
-1. Click the "Add Trade" button
-2. Select a portfolio from the dropdown
-3. Fill in the trade details:
-   - Ticker symbol (e.g., AAPL)
-   - Entry price
-   - Exit price (optional - for closed positions)
-   - Quantity
-   - Trade date
-4. Click "Add Trade"
+1. In the portfolio list, locate the portfolio you want to add a trade to.
+2. Click the **"Add Trade"** button for that portfolio.
+3. Fill out the trade form:
+   - **Ticker Symbol** (e.g., AAPL)
+   - **Entry Price**
+   - **Exit Price** (optional, leave blank for open positions)
+   - **Quantity**
+   - **Trade Date**
+4. Click **"Add Trade"**. The trade will be added and the portfolio's stats will update automatically.
 
-### Viewing Performance
+### Deleting a Portfolio
 
-- Portfolios are displayed with current P&L calculations
-- Green badges indicate positive returns
-- Red badges indicate negative returns
-- Each portfolio shows initial value, total P&L, current value, and number of trades
+- Click the **"Delete"** button on a portfolio card.
+- If the portfolio has trades, you'll be warned before deletion.
+- Portfolios with trades cannot be deleted without confirmation.
+
+### Viewing Portfolio Performance
+
+- Each portfolio card displays:
+  - **Initial Value**
+  - **Current Value** (reflects all closed trades)
+  - **Total P&L** (profit/loss in dollars)
+  - **% Return** (relative to initial value)
+  - **Number of Trades**
+- Badges indicate performance:
+  - **Green badge**: Positive return
+  - **Red badge**: Negative return
+- All calculations update in real-time as you add or remove trades.
+
+### Tips
+
+- You can manage multiple portfolios independently.
+- Open positions (trades without an exit price) are not included in P&L until closed.
+- Use the dashboard to quickly compare performance across all your portfolios.
 
 ## Database Schema
 
@@ -151,24 +169,20 @@ src/
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
-│   ├── ui/          # ShadCN components
+│   ├── ui/                # ShadCN & custom UI components (TailwindCSS-based)
 │   ├── dashboard.tsx
-│   ├── portfolio-form.tsx
-│   ├── portfolio-list.tsx
-│   └── trade-form.tsx
+│   ├── portfolio/
+│   │   ├── portfolio-card.tsx
+│   │   ├── portfolio-form.tsx
+│   │   └── portfolio-list.tsx
+│   └── trade/
+│       └── trade-form.tsx
 └── lib/
-    ├── db.ts        # Prisma client
-    └── utils.ts     # Utility functions
-```
+    ├── db.ts              # Prisma client instance
+    └── utils.ts           # Shared utility functions
 
-## Contributing
+## Architecture
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+This application follows a modern full-stack architecture built on Next.js 15 with the App Router. The frontend utilizes React Server Components for improved performance, while client components handle interactive features like forms and real-time updates. The UI is built with TailwindCSS and ShadCN components for a consistent, accessible design system.
 
-## License
-
-MIT License - see LICENSE file for details
+The backend leverages Next.js API routes for server-side operations, with Prisma ORM providing type-safe database interactions. The PostgreSQL database stores portfolio and trade data with proper relationships, enabling efficient queries for P&L calculations. The application uses optimistic updates for a responsive user experience, immediately reflecting changes in the UI while handling database operations in the background. This approach ensures users see instant feedback while maintaining data consistency and reliability.
