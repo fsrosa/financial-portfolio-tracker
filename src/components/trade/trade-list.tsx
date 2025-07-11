@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { TradeForm } from './trade-form'
+import { TradeCard } from './trade-card'
 import { useToast } from '@/components/ui/toast'
 import { Trade, Portfolio } from '@/lib/data'
 import { useRefresh } from '../refresh-provider'
@@ -22,12 +21,10 @@ export function TradeList({ initialTrades, initialPortfolios }: TradeListProps) 
   const { addToast } = useToast()
   const { refreshTrigger, triggerRefresh } = useRefresh()
 
-  // Update local state when initial data changes (after server revalidation)
   useEffect(() => {
     setTrades(initialTrades)
   }, [initialTrades])
 
-  // Update local state when refresh trigger changes
   useEffect(() => {
     if (refreshTrigger > 0) {
       fetchTrades()
@@ -46,21 +43,7 @@ export function TradeList({ initialTrades, initialPortfolios }: TradeListProps) 
     }
   }
 
-  const calculateTradePnL = (trade: Trade) => {
-    if (!trade.exitPrice) return null
-    return (trade.exitPrice - trade.entryPrice) * trade.quantity
-  }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
-  }
 
   const handleDeleteTrade = async () => {
     if (!tradeToDelete) return
@@ -116,71 +99,15 @@ export function TradeList({ initialTrades, initialPortfolios }: TradeListProps) 
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {trades.slice(0, 10).map((trade) => {
-              const pnl = calculateTradePnL(trade)
-              const isPositive = pnl && pnl > 0
-              const isOpen = !trade.exitPrice
-
-              return (
-                <div
-                  key={trade.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div>
-                      <div className="font-medium">{trade.ticker}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {trade.portfolio.name}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-muted-foreground">
-                          {trade.quantity} shares
-                        </span>
-                        <Badge variant={isOpen ? 'secondary' : isPositive ? 'default' : 'destructive'}>
-                          {isOpen ? 'Open' : isPositive ? 'Profit' : 'Loss'}
-                        </Badge>
-                      </div>
-                      <div className="text-sm">
-                        {formatCurrency(trade.entryPrice)} → {trade.exitPrice ? formatCurrency(trade.exitPrice) : 'Open'}
-                      </div>
-                      {pnl && (
-                        <div className={`text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(pnl)}
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {formatDate(trade.date)}
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <TradeForm
-                        mode="edit"
-                        trade={trade}
-                        portfolios={initialPortfolios}
-                        onTradeUpdated={triggerRefresh}
-                        trigger={
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        }
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => confirmDelete(trade)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {trades.slice(0, 10).map((trade) => (
+              <TradeCard
+                key={trade.id}
+                trade={trade}
+                portfolios={initialPortfolios}
+                onTradeUpdated={triggerRefresh}
+                onDelete={confirmDelete}
+              />
+            ))}
           </div>
         </CardContent>
       </Card>

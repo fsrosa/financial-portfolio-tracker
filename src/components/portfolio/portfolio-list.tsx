@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { PortfolioForm } from './portfolio-form'
+import { PortfolioCard } from './portfolio-card'
 import { useToast } from '@/components/ui/toast'
 import { Portfolio } from '@/lib/data'
 import { useRefresh } from '../refresh-provider'
@@ -21,7 +20,6 @@ export function PortfolioList({ initialPortfolios }: PortfolioListProps) {
   const { addToast } = useToast()
   const { refreshTrigger, triggerRefresh } = useRefresh()
 
-  // Update portfolios when refresh trigger changes
   useEffect(() => {
     if (refreshTrigger > 0) {
       fetchPortfolios()
@@ -38,36 +36,6 @@ export function PortfolioList({ initialPortfolios }: PortfolioListProps) {
     } catch (error) {
       console.error('Failed to fetch portfolios:', error)
     }
-  }
-
-  const calculatePortfolioPnL = (portfolio: Portfolio) => {
-    const totalPnL = portfolio.trades.reduce((sum, trade) => {
-      if (trade.exitPrice) {
-        const tradePnL = (trade.exitPrice - trade.entryPrice) * trade.quantity
-        return sum + tradePnL
-      }
-      return sum
-    }, 0)
-
-    const totalValue = portfolio.initialValue + totalPnL
-    const percentageChange = ((totalValue - portfolio.initialValue) / portfolio.initialValue) * 100
-
-    return {
-      totalPnL,
-      totalValue,
-      percentageChange,
-    }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
-
-  const formatPercentage = (percentage: number) => {
-    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`
   }
 
   const handleDeletePortfolio = async () => {
@@ -117,68 +85,14 @@ export function PortfolioList({ initialPortfolios }: PortfolioListProps) {
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {portfolios.map((portfolio) => {
-          const { totalPnL, totalValue, percentageChange } = calculatePortfolioPnL(portfolio)
-          const isPositive = totalPnL >= 0
-
-          return (
-            <Card key={portfolio.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {portfolio.name}
-                  <Badge variant={isPositive ? 'default' : 'destructive'}>
-                    {formatPercentage(percentageChange)}
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  Created {new Date(portfolio.createdAt).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Initial Value:</span>
-                    <span className="font-medium">{formatCurrency(portfolio.initialValue)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total P&L:</span>
-                    <span className={`font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(totalPnL)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Current Value:</span>
-                    <span className="font-medium">{formatCurrency(totalValue)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Trades:</span>
-                    <span className="font-medium">{portfolio.trades.length}</span>
-                  </div>
-                  <div className="flex space-x-2 pt-2">
-                    <PortfolioForm
-                      mode="edit"
-                      portfolio={portfolio}
-                      onPortfolioUpdated={triggerRefresh}
-                      trigger={
-                        <Button variant="outline" size="sm" className="flex-1">
-                          Edit
-                        </Button>
-                      }
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => confirmDelete(portfolio)}
-                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+        {portfolios.map((portfolio) => (
+          <PortfolioCard
+            key={portfolio.id}
+            portfolio={portfolio}
+            onPortfolioUpdated={triggerRefresh}
+            onDelete={confirmDelete}
+          />
+        ))}
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

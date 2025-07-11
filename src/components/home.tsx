@@ -78,8 +78,8 @@ export function Home({ initialPortfolios, initialTrades }: HomeProps) {
       <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="portfolios">Portfolios</TabsTrigger>
           <TabsTrigger value="trades">Recent Trades</TabsTrigger>
+          <TabsTrigger value="portfolios">Portfolios</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboard" className="space-y-4">
