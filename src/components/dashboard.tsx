@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PortfolioForm } from './portfolio-form'
-import { TradeForm } from './trade-form'
-import { PortfolioList } from './portfolio-list'
-import { TradeList } from './trade-list'
+import { PortfolioForm } from '@/components/portfolio/portfolio-form'
+import { TradeForm } from '@/components/trade/trade-form'
+import { PortfolioList } from '@/components/portfolio/portfolio-list'
+import { TradeList } from '@/components/trade/trade-list'
 import { Plus } from 'lucide-react'
 
 export function Dashboard() {
@@ -46,7 +46,7 @@ export function Dashboard() {
               <DialogHeader>
                 <DialogTitle>Create New Portfolio</DialogTitle>
               </DialogHeader>
-              <PortfolioForm onPortfolioCreated={handlePortfolioCreated} />
+              <PortfolioForm mode="create" onPortfolioCreated={handlePortfolioCreated} />
             </DialogContent>
           </Dialog>
 
@@ -61,7 +61,7 @@ export function Dashboard() {
               <DialogHeader>
                 <DialogTitle>Add New Trade</DialogTitle>
               </DialogHeader>
-              <TradeForm onTradeCreated={handleTradeCreated} />
+              <TradeForm mode="create" onTradeCreated={handleTradeCreated} />
             </DialogContent>
           </Dialog>
         </div>
