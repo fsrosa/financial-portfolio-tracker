@@ -8,9 +8,10 @@ import { PortfolioForm } from '@/components/portfolio/portfolio-form'
 import { TradeForm } from '@/components/trade/trade-form'
 import { PortfolioList } from '@/components/portfolio/portfolio-list'
 import { TradeList } from '@/components/trade/trade-list'
+import { DashboardView } from '@/components/dashboard/dashboard'
 import { Plus } from 'lucide-react'
 
-export function Dashboard() {
+export function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false)
   const [isTradeDialogOpen, setIsTradeDialogOpen] = useState(false)
@@ -67,11 +68,16 @@ export function Dashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue="portfolios" className="space-y-4">
+      <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="portfolios">Portfolios</TabsTrigger>
           <TabsTrigger value="trades">Recent Trades</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="dashboard" className="space-y-4">
+          <DashboardView refreshTrigger={refreshTrigger} />
+        </TabsContent>
         
         <TabsContent value="portfolios" className="space-y-4">
           <PortfolioList refreshTrigger={refreshTrigger} />

@@ -1,9 +1,9 @@
-import { Dashboard } from '@/components/dashboard'
+import { Home } from '@/components/home'
 
-export default function Home() {
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Dashboard />
+      <Home />
     </div>
   )
 }
