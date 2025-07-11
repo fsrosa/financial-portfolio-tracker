@@ -7,37 +7,34 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TradeForm } from './trade-form'
 import { useToast } from '@/components/ui/toast'
-
-interface Trade {
-  id: string
-  ticker: string
-  entryPrice: number
-  exitPrice: number | null
-  quantity: number
-  date: string
-  portfolio: {
-    id: string
-    name: string
-  }
-}
+import { Trade, Portfolio } from '@/lib/data'
+import { useRefresh } from '../refresh-provider'
 
 interface TradeListProps {
-  refreshTrigger: number
+  initialTrades: Trade[]
+  initialPortfolios: Portfolio[]
 }
 
-export function TradeList({ refreshTrigger }: TradeListProps) {
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+export function TradeList({ initialTrades, initialPortfolios }: TradeListProps) {
+  const [trades, setTrades] = useState<Trade[]>(initialTrades)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null)
   const { addToast } = useToast()
+  const { refreshTrigger, triggerRefresh } = useRefresh()
 
+  // Update local state when initial data changes (after server revalidation)
   useEffect(() => {
-    fetchTrades()
+    setTrades(initialTrades)
+  }, [initialTrades])
+
+  // Update local state when refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchTrades()
+    }
   }, [refreshTrigger])
 
   const fetchTrades = async () => {
-    setIsLoading(true)
     try {
       const response = await fetch('/api/trades')
       if (response.ok) {
@@ -46,8 +43,6 @@ export function TradeList({ refreshTrigger }: TradeListProps) {
       }
     } catch (error) {
       console.error('Failed to fetch trades:', error)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -71,13 +66,8 @@ export function TradeList({ refreshTrigger }: TradeListProps) {
     if (!tradeToDelete) return
 
     try {
-      const response = await fetch(`/api/trades?id=${tradeToDelete.id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete trade')
-      }
+      const { deleteTrade } = await import('@/lib/actions')
+      await deleteTrade(tradeToDelete.id)
 
       addToast({
         description: 'Trade deleted successfully!',
@@ -87,7 +77,7 @@ export function TradeList({ refreshTrigger }: TradeListProps) {
       
       setDeleteDialogOpen(false)
       setTradeToDelete(null)
-      fetchTrades()
+      triggerRefresh()
     } catch (error) {
       addToast({
         description: 'Failed to delete trade',
@@ -102,17 +92,7 @@ export function TradeList({ refreshTrigger }: TradeListProps) {
     setDeleteDialogOpen(true)
   }
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <p className="mt-2 text-muted-foreground">Loading trades...</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
+  
   if (trades.length === 0) {
     return (
       <Card>
@@ -180,7 +160,8 @@ export function TradeList({ refreshTrigger }: TradeListProps) {
                       <TradeForm
                         mode="edit"
                         trade={trade}
-                        onTradeUpdated={fetchTrades}
+                        portfolios={initialPortfolios}
+                        onTradeUpdated={triggerRefresh}
                         trigger={
                           <Button variant="outline" size="sm">
                             Edit

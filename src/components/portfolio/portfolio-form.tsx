@@ -61,31 +61,27 @@ export function PortfolioForm({ mode, portfolio, onPortfolioCreated, onPortfolio
     setIsLoading(true)
 
     try {
-      const method = isEditMode ? 'PUT' : 'POST'
-      const body = {
-        ...(isEditMode && { id: portfolio!.id }),
-        name: name.trim(),
-        initialValue: parseFloat(initialValue),
-      }
-
-      const response = await fetch('/api/portfolios', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} portfolio`)
-      }
-
-      showToast('success', `Portfolio ${isEditMode ? 'updated' : 'created'} successfully!`)
-      
       if (isEditMode) {
+        // Use server action for update
+        const { updatePortfolio } = await import('@/lib/actions')
+        const formData = new FormData()
+        formData.append('id', portfolio!.id)
+        formData.append('name', name.trim())
+        formData.append('initialValue', initialValue)
+        
+        await updatePortfolio(formData)
+        showToast('success', 'Portfolio updated successfully!')
         setIsOpen(false)
         onPortfolioUpdated?.()
       } else {
+        // Use server action for create
+        const { createPortfolio } = await import('@/lib/actions')
+        const formData = new FormData()
+        formData.append('name', name.trim())
+        formData.append('initialValue', initialValue)
+        
+        await createPortfolio(formData)
+        showToast('success', 'Portfolio created successfully!')
         resetForm()
         onPortfolioCreated?.()
       }

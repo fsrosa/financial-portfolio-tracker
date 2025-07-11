@@ -10,19 +10,26 @@ import { PortfolioList } from '@/components/portfolio/portfolio-list'
 import { TradeList } from '@/components/trade/trade-list'
 import { DashboardView } from '@/components/dashboard/dashboard'
 import { Plus } from 'lucide-react'
+import { Portfolio, Trade } from '@/lib/data'
+import { useRefresh } from './refresh-provider'
 
-export function Home() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
+interface HomeProps {
+  initialPortfolios: Portfolio[]
+  initialTrades: Trade[]
+}
+
+export function Home({ initialPortfolios, initialTrades }: HomeProps) {
+  const { triggerRefresh } = useRefresh()
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false)
   const [isTradeDialogOpen, setIsTradeDialogOpen] = useState(false)
 
   const handlePortfolioCreated = () => {
-    setRefreshTrigger(prev => prev + 1)
+    triggerRefresh()
     setIsPortfolioDialogOpen(false)
   }
 
   const handleTradeCreated = () => {
-    setRefreshTrigger(prev => prev + 1)
+    triggerRefresh()
     setIsTradeDialogOpen(false)
   }
 
@@ -62,7 +69,7 @@ export function Home() {
               <DialogHeader>
                 <DialogTitle>Add New Trade</DialogTitle>
               </DialogHeader>
-              <TradeForm mode="create" onTradeCreated={handleTradeCreated} />
+              <TradeForm mode="create" portfolios={initialPortfolios} onTradeCreated={handleTradeCreated} />
             </DialogContent>
           </Dialog>
         </div>
@@ -76,15 +83,23 @@ export function Home() {
         </TabsList>
         
         <TabsContent value="dashboard" className="space-y-4">
-          <DashboardView refreshTrigger={refreshTrigger} />
+          <DashboardView 
+            initialPortfolios={initialPortfolios}
+            initialTrades={initialTrades}
+          />
         </TabsContent>
         
         <TabsContent value="portfolios" className="space-y-4">
-          <PortfolioList refreshTrigger={refreshTrigger} />
+          <PortfolioList 
+            initialPortfolios={initialPortfolios}
+          />
         </TabsContent>
         
         <TabsContent value="trades" className="space-y-4">
-          <TradeList refreshTrigger={refreshTrigger} />
+          <TradeList 
+            initialTrades={initialTrades}
+            initialPortfolios={initialPortfolios}
+          />
         </TabsContent>
       </Tabs>
     </div>

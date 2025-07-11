@@ -3,55 +3,51 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useToast } from '@/components/ui/toast'
-
-interface Trade {
-  id: string
-  ticker: string
-  entryPrice: number
-  exitPrice: number | null
-  quantity: number
-  date: string
-  portfolio: {
-    id: string
-    name: string
-  }
-}
-
-interface Portfolio {
-  id: string
-  name: string
-  initialValue: number
-  createdAt: string
-}
+import { Portfolio, Trade } from '@/lib/data'
+import { useRefresh } from '../refresh-provider'
 
 interface DashboardViewProps {
-  refreshTrigger: number
+  initialPortfolios: Portfolio[]
+  initialTrades: Trade[]
 }
 
-export function DashboardView({ refreshTrigger }: DashboardViewProps) {
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([])
+export function DashboardView({ initialPortfolios, initialTrades }: DashboardViewProps) {
+  const [portfolios, setPortfolios] = useState<Portfolio[]>(initialPortfolios)
   const [selectedPortfolio, setSelectedPortfolio] = useState<string>('')
   const [trades, setTrades] = useState<Trade[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [pnlData, setPnlData] = useState<any[]>([])
   const { addToast } = useToast()
+  const { refreshTrigger } = useRefresh()
 
   useEffect(() => {
-    fetchPortfolios()
+    if (refreshTrigger > 0) {
+      fetchPortfolios()
+    }
   }, [refreshTrigger])
 
   useEffect(() => {
+    if (portfolios.length > 0 && !selectedPortfolio) {
+      const firstPortfolio = portfolios[0]
+      setSelectedPortfolio(firstPortfolio.id)
+      const portfolioTrades = initialTrades.filter(trade => trade.portfolioId === firstPortfolio.id)
+      setTrades(portfolioTrades)
+      calculatePnLData(portfolioTrades)
+    }
+  }, [portfolios, selectedPortfolio, initialTrades])
+
+  useEffect(() => {
     if (selectedPortfolio) {
-      fetchTrades(selectedPortfolio)
+      const portfolioTrades = initialTrades.filter(trade => trade.portfolioId === selectedPortfolio)
+      setTrades(portfolioTrades)
+      calculatePnLData(portfolioTrades)
     } else {
       setTrades([])
       setPnlData([])
     }
-  }, [selectedPortfolio])
+  }, [selectedPortfolio, initialTrades])
 
   const fetchPortfolios = async () => {
     try {
@@ -59,9 +55,6 @@ export function DashboardView({ refreshTrigger }: DashboardViewProps) {
       if (response.ok) {
         const data = await response.json()
         setPortfolios(data)
-        if (data.length > 0 && !selectedPortfolio) {
-          setSelectedPortfolio(data[0].id)
-        }
       }
     } catch (error) {
       console.error('Failed to fetch portfolios:', error)
@@ -73,27 +66,6 @@ export function DashboardView({ refreshTrigger }: DashboardViewProps) {
     }
   }
 
-  const fetchTrades = async (portfolioId: string) => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/portfolios/${portfolioId}/trades`)
-      if (response.ok) {
-        const data = await response.json()
-        setTrades(data)
-        calculatePnLData(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch trades:', error)
-      addToast({
-        description: 'Failed to fetch trades',
-        title: 'Error',
-        variant: 'destructive'
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const calculatePnLData = (trades: Trade[]) => {
     const portfolio = portfolios.find(p => p.id === selectedPortfolio)
     if (!portfolio) return
@@ -101,7 +73,6 @@ export function DashboardView({ refreshTrigger }: DashboardViewProps) {
     let cumulativePnL = 0
     const data: any[] = []
     
-    // Sort trades by date
     const sortedTrades = [...trades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     
     sortedTrades.forEach((trade) => {
@@ -247,12 +218,7 @@ export function DashboardView({ refreshTrigger }: DashboardViewProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                  <p className="mt-2 text-muted-foreground">Loading trades...</p>
-                </div>
-              ) : trades.length === 0 ? (
+              {trades.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8">
                   <p className="text-muted-foreground text-center">
                     No trades found in this portfolio. Add your first trade to get started!

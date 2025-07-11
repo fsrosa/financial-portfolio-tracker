@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,12 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
-
-interface Portfolio {
-  id: string
-  name: string
-  initialValue: number
-}
+import { Portfolio } from '@/lib/data'
 
 interface Trade {
   id: string
@@ -31,13 +26,13 @@ interface Trade {
 interface TradeFormProps {
   mode: 'create' | 'edit'
   trade?: Trade
+  portfolios: Portfolio[]
   onTradeCreated?: () => void
   onTradeUpdated?: () => void
   trigger?: React.ReactNode
 }
 
-export function TradeForm({ mode, trade, onTradeCreated, onTradeUpdated, trigger }: TradeFormProps) {
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([])
+export function TradeForm({ mode, trade, portfolios, onTradeCreated, onTradeUpdated, trigger }: TradeFormProps) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(trade?.portfolio.id || '')
   const [ticker, setTicker] = useState(trade?.ticker || '')
   const [entryPrice, setEntryPrice] = useState(trade?.entryPrice.toString() || '')
@@ -49,22 +44,6 @@ export function TradeForm({ mode, trade, onTradeCreated, onTradeUpdated, trigger
   const { addToast } = useToast()
 
   const isEditMode = mode === 'edit'
-
-  useEffect(() => {
-    fetchPortfolios()
-  }, [])
-
-  const fetchPortfolios = async () => {
-    try {
-      const response = await fetch('/api/portfolios')
-      if (response.ok) {
-        const data = await response.json()
-        setPortfolios(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch portfolios:', error)
-    }
-  }
 
   const showToast = (type: 'success' | 'error', message: string) => {
     addToast({
@@ -103,35 +82,35 @@ export function TradeForm({ mode, trade, onTradeCreated, onTradeUpdated, trigger
     setIsLoading(true)
 
     try {
-      const method = isEditMode ? 'PUT' : 'POST'
-      const body = {
-        ...(isEditMode && { id: trade!.id }),
-        ticker: ticker.trim().toUpperCase(),
-        entryPrice: parseFloat(entryPrice),
-        exitPrice: exitPrice ? parseFloat(exitPrice) : null,
-        quantity: parseInt(quantity),
-        date,
-        portfolioId: selectedPortfolio,
-      }
-
-      const response = await fetch('/api/trades', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} trade`)
-      }
-
-      showToast('success', `Trade ${isEditMode ? 'updated' : 'created'} successfully!`)
-      
       if (isEditMode) {
+        // Use server action for update
+        const { updateTrade } = await import('@/lib/actions')
+        const formData = new FormData()
+        formData.append('id', trade!.id)
+        formData.append('ticker', ticker.trim().toUpperCase())
+        formData.append('entryPrice', entryPrice)
+        formData.append('exitPrice', exitPrice || '')
+        formData.append('quantity', quantity)
+        formData.append('date', date)
+        formData.append('portfolioId', selectedPortfolio)
+        
+        await updateTrade(formData)
+        showToast('success', 'Trade updated successfully!')
         setIsOpen(false)
         onTradeUpdated?.()
       } else {
+        // Use server action for create
+        const { createTrade } = await import('@/lib/actions')
+        const formData = new FormData()
+        formData.append('ticker', ticker.trim().toUpperCase())
+        formData.append('entryPrice', entryPrice)
+        formData.append('exitPrice', exitPrice || '')
+        formData.append('quantity', quantity)
+        formData.append('date', date)
+        formData.append('portfolioId', selectedPortfolio)
+        
+        await createTrade(formData)
+        showToast('success', 'Trade created successfully!')
         resetForm()
         onTradeCreated?.()
       }

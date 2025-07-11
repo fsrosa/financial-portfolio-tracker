@@ -7,42 +7,28 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PortfolioForm } from './portfolio-form'
 import { useToast } from '@/components/ui/toast'
-
-interface Trade {
-  id: string
-  ticker: string
-  entryPrice: number
-  exitPrice: number | null
-  quantity: number
-  date: string
-  portfolioId: string
-}
-
-interface Portfolio {
-  id: string
-  name: string
-  initialValue: number
-  createdAt: string
-  trades: Trade[]
-}
+import { Portfolio } from '@/lib/data'
+import { useRefresh } from '../refresh-provider'
 
 interface PortfolioListProps {
-  refreshTrigger: number
+  initialPortfolios: Portfolio[]
 }
 
-export function PortfolioList({ refreshTrigger }: PortfolioListProps) {
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+export function PortfolioList({ initialPortfolios }: PortfolioListProps) {
+  const [portfolios, setPortfolios] = useState<Portfolio[]>(initialPortfolios)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [portfolioToDelete, setPortfolioToDelete] = useState<Portfolio | null>(null)
   const { addToast } = useToast()
+  const { refreshTrigger, triggerRefresh } = useRefresh()
 
+  // Update portfolios when refresh trigger changes
   useEffect(() => {
-    fetchPortfolios()
+    if (refreshTrigger > 0) {
+      fetchPortfolios()
+    }
   }, [refreshTrigger])
 
   const fetchPortfolios = async () => {
-    setIsLoading(true)
     try {
       const response = await fetch('/api/portfolios')
       if (response.ok) {
@@ -51,8 +37,6 @@ export function PortfolioList({ refreshTrigger }: PortfolioListProps) {
       }
     } catch (error) {
       console.error('Failed to fetch portfolios:', error)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -90,14 +74,8 @@ export function PortfolioList({ refreshTrigger }: PortfolioListProps) {
     if (!portfolioToDelete) return
 
     try {
-      const response = await fetch(`/api/portfolios?id=${portfolioToDelete.id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to delete portfolio')
-      }
+      const { deletePortfolio } = await import('@/lib/actions')
+      await deletePortfolio(portfolioToDelete.id)
 
       addToast({
         description: 'Portfolio deleted successfully!',
@@ -107,7 +85,7 @@ export function PortfolioList({ refreshTrigger }: PortfolioListProps) {
       
       setDeleteDialogOpen(false)
       setPortfolioToDelete(null)
-      fetchPortfolios()
+      triggerRefresh()
     } catch (error) {
       addToast({
         description: error instanceof Error ? error.message : 'Failed to delete portfolio',
@@ -122,24 +100,7 @@ export function PortfolioList({ refreshTrigger }: PortfolioListProps) {
     setDeleteDialogOpen(true)
   }
 
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
+
 
   if (portfolios.length === 0) {
     return (
@@ -197,7 +158,7 @@ export function PortfolioList({ refreshTrigger }: PortfolioListProps) {
                     <PortfolioForm
                       mode="edit"
                       portfolio={portfolio}
-                      onPortfolioUpdated={fetchPortfolios}
+                      onPortfolioUpdated={triggerRefresh}
                       trigger={
                         <Button variant="outline" size="sm" className="flex-1">
                           Edit
